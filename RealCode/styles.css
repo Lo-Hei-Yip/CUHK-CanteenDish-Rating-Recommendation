@@ -1,0 +1,344 @@
+/* Reset and Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Poppins', 'Segoe UI', Arial, sans-serif;
+    background: linear-gradient(135deg, #f4f7fa 0%, #e0e7ff 100%);
+    color: #2c3e50;
+    line-height: 1.6;
+    padding: 20px;
+}
+
+/* Navigation */
+nav {
+    background: linear-gradient(90deg, #2c3e50 0%, #34495e 100%);
+    padding: 15px 20px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    position: sticky;
+    top: 10px;
+    z-index: 100;
+}
+
+nav a {
+    color: #ecf0f1;
+    margin: 0 20px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1.1em;
+    transition: color 0.3s ease, transform 0.3s ease;
+}
+
+nav a:hover {
+    color: #3498db;
+    transform: scale(1.05);
+}
+
+/* Headings */
+h1 {
+    text-align: center;
+    color: #2c3e50;
+    font-size: 3em;
+    margin-bottom: 30px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+    font-weight: 700;
+}
+
+h2 {
+    color: #2980b9;
+    font-size: 2.2em;
+    margin: 40px 0 20px;
+    font-weight: 600;
+    text-align: center;
+}
+
+h3 {
+    color: #34495e;
+    font-size: 1.8em;
+    margin: 20px 0 10px;
+    font-weight: 600;
+}
+
+/* Containers */
+#canteen-showcase, #dish-list, #recommendations, #ratings-list {
+    max-width: 1200px;
+    margin: 0 auto 40px;
+    padding: 20px;
+    background: #fff;
+    border-radius: 15px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Canteen Showcase */
+#canteen-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.canteen {
+    text-align: center;
+    padding: 15px;
+    background: #fafafa;
+    border-radius: 10px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.canteen:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.canteen-image {
+    width: 100%;
+    height: 200px; /* Bigger images */
+    object-fit: cover;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    transition: transform 0.3s ease;
+}
+
+.canteen:hover .canteen-image {
+    transform: scale(1.05);
+}
+
+.canteen p {
+    font-size: 1.1em;
+    color: #34495e;
+    font-weight: 500;
+}
+
+/* Dish List and Ratings */
+.dish {
+    border: none;
+    padding: 20px;
+    margin: 15px 0;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.dish:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
+
+#ratings-list .dish ul {
+    list-style-type: none;
+    padding-left: 20px;
+    margin-top: 10px;
+}
+
+#ratings-list .dish li {
+    margin: 8px 0;
+    font-size: 1em;
+    color: #7f8c8d;
+}
+
+/* Recommendations */
+.canteen-section {
+    margin-bottom: 30px;
+    padding: 20px;
+    background: linear-gradient(135deg, #e8f4f8 0%, #d1e8f2 100%);
+    border-radius: 10px;
+}
+
+.canteen-section .canteen-image {
+    width: 150px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 10px;
+    margin-bottom: 15px;
+}
+
+.canteen-section ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.canteen-section .dish {
+    padding: 10px;
+    margin: 5px 0;
+    background: #fff;
+    border-radius: 8px;
+    font-size: 1.1em;
+    color: #2c3e50;
+}
+
+/* Form */
+form {
+    max-width: 500px;
+    margin: 0 auto 40px;
+    padding: 25px;
+    background: #fff;
+    border-radius: 15px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
+
+label {
+    margin: 15px 0 5px;
+    font-weight: 600;
+    color: #34495e;
+    font-size: 1.1em;
+}
+
+input, textarea, select {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 1em;
+    background: #f9f9f9;
+    transition: border-color 0.3s ease;
+}
+
+input:focus, textarea:focus, select:focus {
+    border-color: #3498db;
+    outline: none;
+    background: #fff;
+}
+
+textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+button {
+    margin-top: 20px;
+    padding: 12px;
+    background: linear-gradient(90deg, #3498db 0%, #2980b9 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.2em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(52, 152, 219, 0.4);
+}
+
+/* New Styles for Dynamic Dish List */
+.canteen-dishes {
+    margin-bottom: 20px;
+}
+
+.canteen-header {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 10px;
+    background: #fafafa;
+    border-radius: 8px;
+    transition: background 0.3s ease;
+}
+
+.canteen-header:hover {
+    background: #e0e7ff;
+}
+
+.dish-list {
+    list-style-type: none;
+    padding-left: 20px; /* Reduced padding since no thumbnail */
+    transition: all 0.3s ease;
+}
+
+.dish-list li {
+    padding: 5px 0;
+    color: #34495e;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    h1 {
+        font-size: 2.2em;
+    }
+    h2 {
+        font-size: 1.8em;
+    }
+    #canteen-list {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+    .canteen {
+        padding: 10px;
+    }
+    .canteen-image {
+        height: 150px;
+    }
+    .canteen-section .canteen-image {
+        width: 120px;
+        height: 120px;
+    }
+    form {
+        padding: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    nav a {
+        margin: 0 10px;
+        font-size: 1em;
+    }
+    .canteen {
+        width: 100%;
+    }
+    .dish {
+        padding: 15px;
+    }
+}
+
+/* Existing style for new dish section */
+#new-dish-section {
+    margin-top: 15px;
+}
+
+.dish span {
+    font-weight: 600;
+    color: #2980b9;
+}
+
+
+/* Table Styles */
+#all-dishes-ranking {
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 20px;
+    background: #fff;
+    border-radius: 15px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
+
+#ranking-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+#ranking-table th, #ranking-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+#ranking-table th {
+    background: linear-gradient(90deg, #3498db 0%, #2980b9 100%);
+    color: white;
+    font-weight: 600;
+}
+
+#ranking-table tr:hover {
+    background-color: #f5f5f5;
+}
+
+#ranking-table td {
+    color: #34495e;
+}
