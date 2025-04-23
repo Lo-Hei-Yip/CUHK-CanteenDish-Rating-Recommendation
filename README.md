@@ -1,6 +1,6 @@
 # CUHK-CanteenDish-Rating-Recommendation
 
-This is a prototype of the CUHK-CanteenDish-Rating-Recommendation website without any server side work, with only static data and approximatie NLP function
+This is a prototype of the CUHK-CanteenDish-Rating-Recommendation website without any server side work, with only static data and approximatie NLP function.
 The real source code with server side work and takes in other node modules can been found in 'RealCode' folder
 
 The website of ‘CUHK canteen rating’ consists of two big functions Dish Rating and Review System and Dish Recommendations:
