@@ -1,4 +1,4 @@
-// Static data from data.json (same as in script.js)
+// Static data from data.json
 const data = {
   "users": [
     {
@@ -965,301 +965,393 @@ const canteenInfo = {
 
 // Simple sentiment weight function
 function getReviewWeight(review, rating) {
-    const emotionalWords = ["hate", "love", "terrible", "amazing", "awful", "fantastic"];
-    const lowerReview = review.toLowerCase();
-    const hasEmotionalWord = emotionalWords.some(word => lowerReview.includes(word));
-    const extremeRating = rating <= 1.5 || rating >= 4.5;
-    if (hasEmotionalWord || extremeRating) {
-        return 0.5;
+    try {
+        const emotionalWords = ["hate", "love", "terrible", "amazing", "awful", "fantastic"];
+        const lowerReview = review.toLowerCase();
+        const hasEmotionalWord = emotionalWords.some(word => lowerReview.includes(word));
+        const extremeRating = rating <= 1.5 || rating >= 4.5;
+        return hasEmotionalWord || extremeRating ? 0.5 : 1.0;
+    } catch (error) {
+        console.error("Error in getReviewWeight:", error);
+        return 1.0; // Default weight on error
     }
-    return 1.0;
 }
 
 // Compute baseline predictor
 function computeBaselinePredictor() {
-    const users = data.users.map(u => u.username);
-    const items = data.dishes.map(d => `${d.name}-${d.canteen}`);
-    let ratings = [];
-    data.users.forEach(user => {
-        user.ratings.forEach(r => {
-            ratings.push({ username: user.username, item: `${r.dish}-${r.canteen}`, rating: r.rating });
+    try {
+        console.log("Computing baseline predictor...");
+        const users = data.users.map(u => u.username);
+        const items = data.dishes.map(d => `${d.name}-${d.canteen}`);
+        let ratings = [];
+        data.users.forEach(user => {
+            user.ratings.forEach(r => {
+                ratings.push({ username: user.username, item: `${r.dish}-${r.canteen}`, rating: r.rating });
+            });
         });
-    });
 
-    const globalAverage = ratings.length > 0 ? ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length : 3;
+        const globalAverage = ratings.length > 0 ? ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length : 3;
 
-    const userBiases = {};
-    const itemBiases = {};
-    users.forEach(u => userBiases[u] = 0);
-    items.forEach(i => itemBiases[i] = 0);
+        const userBiases = {};
+        const itemBiases = {};
+        users.forEach(u => userBiases[u] = 0);
+        items.forEach(i => itemBiases[i] = 0);
 
-    const lambda = 0.1;
-    const iterations = 50;
-    for (let iter = 0; iter < iterations; iter++) {
-        users.forEach(user => {
-            let sumError = 0;
-            let count = 0;
-            ratings.forEach(r => {
-                if (r.username === user) {
-                    const predicted = globalAverage + userBiases[user] + itemBiases[r.item];
-                    sumError += r.rating - predicted;
-                    count++;
+        const lambda = 0.1;
+        const iterations = 50;
+        for (let iter = 0; iter < iterations; iter++) {
+            users.forEach(user => {
+                let sumError = 0;
+                let count = 0;
+                ratings.forEach(r => {
+                    if (r.username === user) {
+                        const predicted = globalAverage + userBiases[user] + itemBiases[r.item];
+                        sumError += r.rating - predicted;
+                        count++;
+                    }
+                });
+                if (count > 0) {
+                    userBiases[user] = sumError / (count + lambda);
                 }
             });
-            if (count > 0) {
-                userBiases[user] = sumError / (count + lambda);
-            }
-        });
 
-        items.forEach(item => {
-            let sumError = 0;
-            let count = 0;
-            ratings.forEach(r => {
-                if (r.item === item) {
-                    const predicted = globalAverage + userBiases[r.username] + itemBiases[item];
-                    sumError += r.rating - predicted;
-                    count++;
+            items.forEach(item => {
+                let sumError = 0;
+                let count = 0;
+                ratings.forEach(r => {
+                    if (r.item === item) {
+                        const predicted = globalAverage + userBiases[r.username] + itemBiases[item];
+                        sumError += r.rating - predicted;
+                        count++;
+                    }
+                });
+                if (count > 0) {
+                    itemBiases[item] = sumError / (count + lambda);
                 }
             });
-            if (count > 0) {
-                itemBiases[item] = sumError / (count + lambda);
-            }
-        });
+        }
+
+        return { globalAverage, userBiases, itemBiases };
+    } catch (error) {
+        console.error("Error in computeBaselinePredictor:", error);
+        return { globalAverage: 3, userBiases: {}, itemBiases: {} };
     }
-
-    return { globalAverage, userBiases, itemBiases };
 }
 
 // Compute error matrix
 function computeErrorMatrix(baseline) {
-    const errorMatrix = {};
-    data.users.forEach(user => {
-        errorMatrix[user.username] = {};
-        user.ratings.forEach(r => {
-            const item = `${r.dish}-${r.canteen}`;
-            const baselineRating = baseline.globalAverage + 
-                                 (baseline.userBiases[user.username] || 0) + 
-                                 (baseline.itemBiases[item] || 0);
-            errorMatrix[user.username][item] = r.rating - baselineRating;
+    try {
+        console.log("Computing error matrix...");
+        const errorMatrix = {};
+        data.users.forEach(user => {
+            errorMatrix[user.username] = {};
+            user.ratings.forEach(r => {
+                const item = `${r.dish}-${r.canteen}`;
+                const baselineRating = baseline.globalAverage + 
+                                     (baseline.userBiases[user.username] || 0) + 
+                                     (baseline.itemBiases[item] || 0);
+                errorMatrix[user.username][item] = r.rating - baselineRating;
+            });
         });
-    });
-    return errorMatrix;
+        return errorMatrix;
+    } catch (error) {
+        console.error("Error in computeErrorMatrix:", error);
+        return {};
+    }
 }
 
 // Compute similarity between dishes
 function computeDishSimilarity(itemA, itemB, errorMatrix) {
-    const users = Object.keys(errorMatrix);
-    const commonUsers = users.filter(user => errorMatrix[user][itemA] && errorMatrix[user][itemB]);
+    try {
+        const users = Object.keys(errorMatrix);
+        const commonUsers = users.filter(user => errorMatrix[user][itemA] && errorMatrix[user][itemB]);
 
-    if (commonUsers.length === 0) return 0;
+        if (commonUsers.length === 0) return 0;
 
-    let dotProduct = 0;
-    let normA = 0;
-    let normB = 0;
-    commonUsers.forEach(user => {
-        const valA = errorMatrix[user][itemA];
-        const valB = errorMatrix[user][itemB];
-        dotProduct += valA * valB;
-        normA += valA * valA;
-        normB += valB * valB;
-    });
+        let dotProduct = 0;
+        let normA = 0;
+        let normB = 0;
+        commonUsers.forEach(user => {
+            const valA = errorMatrix[user][itemA];
+            const valB = errorMatrix[user][itemB];
+            dotProduct += valA * valB;
+            normA += valA * valA;
+            normB += valB * valB;
+        });
 
-    normA = Math.sqrt(normA);
-    normB = Math.sqrt(normB);
-    const epsilon = 0.1;
-    return normA * normB === 0 ? 0 : dotProduct / (normA * normB + epsilon);
+        normA = Math.sqrt(normA);
+        normB = Math.sqrt(normB);
+        const epsilon = 0.1;
+        return normA * normB === 0 ? 0 : dotProduct / (normA * normB + epsilon);
+    } catch (error) {
+        console.error("Error in computeDishSimilarity:", error);
+        return 0;
+    }
 }
 
 // Dish-based collaborative filtering
 function getRecommendations(username) {
-    const targetUser = data.users.find(u => u.username.toLowerCase() === username.toLowerCase());
-    if (!targetUser || targetUser.ratings.length === 0) return [];
+    try {
+        console.log("Generating recommendations for:", username);
+        const targetUser = data.users.find(u => u.username.toLowerCase() === username.toLowerCase());
+        if (!targetUser || targetUser.ratings.length === 0) {
+            console.log("No user found or no ratings available.");
+            return [];
+        }
 
-    const baseline = computeBaselinePredictor();
-    const errorMatrix = computeErrorMatrix(baseline);
-    const allItems = data.dishes.map(d => `${d.name}-${d.canteen}`);
-    const targetRatings = targetUser.ratings.map(r => `${r.dish}-${r.canteen}`);
+        const baseline = computeBaselinePredictor();
+        const errorMatrix = computeErrorMatrix(baseline);
+        const allItems = data.dishes.map(d => `${d.name}-${d.canteen}`);
+        const targetRatings = targetUser.ratings.map(r => `${r.dish}-${r.canteen}`);
 
-    const similarities = {};
-    allItems.forEach(itemA => {
-        similarities[itemA]factors = [];
-        allItems.forEach(itemB => {
-            if (itemA !== itemB) {
-                const similarity = computeDishSimilarity(itemA, itemB, errorMatrix);
-                similarities[itemA].push({ item: itemB, similarity });
-            }
-        });
-    });
-
-    const predictions = [];
-    allItems.forEach(item => {
-        if (targetRatings.includes(item)) return;
-
-        let predictedRating = baseline.globalAverage + 
-                             (baseline.userBiases[targetUser.username] || 0) + 
-                             (baseline.itemBiases[item] || 0);
-
-        let totalWeight = 0;
-        let weightedError = 0;
-        targetRatings.forEach(ratedItem => {
-            const similarDishes = similarities[ratedItem]
-                .filter(s => Math.abs(s.similarity) > 0)
-                .sort((a, b) => Math.abs(b.similarity) - Math.abs(a.similarity))
-                .slice(0, 5);
-            similarDishes.forEach(similar => {
-                if (similar.item === item) {
-                    const weight = similar.similarity;
-                    const error = errorMatrix[targetUser.username][ratedItem] || 0;
-                    weightedError += weight * error;
-                    totalWeight += Math.abs(weight);
+        const similarities = {};
+        allItems.forEach(itemA => {
+            similarities[itemA] = [];
+            allItems.forEach(itemB => {
+                if (itemA !== itemB) {
+                    const similarity = computeDishSimilarity(itemA, itemB, errorMatrix);
+                    similarities[itemA].push({ item: itemB, similarity });
                 }
             });
         });
 
-        if (totalWeight > 0) {
-            predictedRating += weightedError / totalWeight;
-        }
+        const predictions = [];
+        allItems.forEach(item => {
+            if (targetRatings.includes(item)) return;
 
-        predictedRating = Math.max(1, Math.min(5, predictedRating));
+            let predictedRating = baseline.globalAverage + 
+                                 (baseline.userBiases[targetUser.username] || 0) + 
+                                 (baseline.itemBiases[item] || 0);
 
-        const [name, canteen] = item.split("-");
-        const dishData = data.dishes.find(d => d.name.toLowerCase() === name.toLowerCase() && d.canteen === canteen);
-        predictions.push({ name, canteen, price: dishData?.price || 0, score: predictedRating });
-    });
+            let totalWeight = 0;
+            let weightedError = 0;
+            targetRatings.forEach(ratedItem => {
+                const similarDishes = similarities[ratedItem]
+                    .filter(s => Math.abs(s.similarity) > 0)
+                    .sort((a, b) => Math.abs(b.similarity) - Math.abs(a.similarity))
+                    .slice(0, 5);
+                similarDishes.forEach(similar => {
+                    if (similar.item === item) {
+                        const weight = similar.similarity;
+                        const error = errorMatrix[targetUser.username][ratedItem] || 0;
+                        weightedError += weight * error;
+                        totalWeight += Math.abs(weight);
+                    }
+                });
+            });
 
-    return predictions
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 3)
-        .map(p => ({
-            name: p.name,
-            canteen: p.canteen,
-            price: p.price,
-            score: parseFloat(p.score.toFixed(2))
-        }));
+            if (totalWeight > 0) {
+                predictedRating += weightedError / totalWeight;
+            }
+
+            predictedRating = Math.max(1, Math.min(5, predictedRating));
+
+            const [name, canteen] = item.split("-");
+            const dishData = data.dishes.find(d => d.name.toLowerCase() === name.toLowerCase() && d.canteen === canteen);
+            predictions.push({ name, canteen, price: dishData?.price || 0, score: predictedRating });
+        });
+
+        return predictions
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 3)
+            .map(p => ({
+                name: p.name,
+                canteen: p.canteen,
+                price: p.price,
+                score: parseFloat(p.score.toFixed(2))
+            }));
+    } catch (error) {
+        console.error("Error in getRecommendations:", error);
+        return [];
+    }
 }
 
 // Compute ratings with Bayesian averaging
 function computeRatings() {
-    const C = 5;
-    let totalWeightedSum = 0;
-    let totalWeight = 0;
-    data.users.forEach(user => {
-        user.ratings.forEach(rating => {
-            const weight = getReviewWeight(rating.review, rating.rating);
-            totalWeightedSum += rating.rating * weight;
-            totalWeight += weight;
-        });
-    });
-    const globalAverage = totalWeight > 0 ? totalWeightedSum / totalWeight : 0;
-
-    const ratingsByDish = {};
-    data.users.forEach(user => {
-        user.ratings.forEach(rating => {
-            const key = `${rating.dish}-${rating.canteen}`;
-            if (!ratingsByDish[key]) {
-                ratingsByDish[key] = { dish: rating.dish, canteen: rating.canteen, price: rating.price, ratings: [] };
-            }
-            const weight = getReviewWeight(rating.review, rating.rating);
-            ratingsByDish[key].ratings.push({
-                username: user.username,
-                rating: rating.rating,
-                review: rating.review,
-                weight: weight
+    try {
+        console.log("Computing ratings...");
+        const C = 5;
+        let totalWeightedSum = 0;
+        let totalWeight = 0;
+        data.users.forEach(user => {
+            user.ratings.forEach(rating => {
+                const weight = getReviewWeight(rating.review, rating.rating);
+                totalWeightedSum += rating.rating * weight;
+                totalWeight += weight;
             });
         });
-    });
+        const globalAverage = totalWeight > 0 ? totalWeightedSum / totalWeight : 0;
 
-    return Object.keys(ratingsByDish).map(key => {
-        const { dish, canteen, price, ratings } = ratingsByDish[key];
-        const totalWeightForDish = ratings.reduce((sum, r) => sum + r.weight, 0);
-        const weightedSumForDish = ratings.reduce((sum, r) => sum + r.rating * r.weight, 0);
-        const bayesianAverage = totalWeightForDish > 0 
-            ? (C * globalAverage + weightedSumForDish) / (C + totalWeightForDish) 
-            : globalAverage;
-        return { dish, canteen, price, averageRating: bayesianAverage.toFixed(2), ratings };
-    });
+        const ratingsByDish = {};
+        data.users.forEach(user => {
+            user.ratings.forEach(rating => {
+                const key = `${rating.dish}-${rating.canteen}`;
+                if (!ratingsByDish[key]) {
+                    ratingsByDish[key] = { dish: rating.dish, canteen: rating.canteen, price: rating.price, ratings: [] };
+                }
+                const weight = getReviewWeight(rating.review, rating.rating);
+                ratingsByDish[key].ratings.push({
+                    username: user.username,
+                    rating: rating.rating,
+                    review: rating.review,
+                    weight: weight
+                });
+            });
+        });
+
+        return Object.keys(ratingsByDish).map(key => {
+            const { dish, canteen, price, ratings } = ratingsByDish[key];
+            const totalWeightForDish = ratings.reduce((sum, r) => sum + r.weight, 0);
+            const weightedSumForDish = ratings.reduce((sum, r) => sum + r.rating * r.weight, 0);
+            const bayesianAverage = totalWeightForDish > 0 
+                ? (C * globalAverage + weightedSumForDish) / (C + totalWeightForDish) 
+                : globalAverage;
+            return { dish, canteen, price, averageRating: bayesianAverage.toFixed(2), ratings };
+        });
+    } catch (error) {
+        console.error("Error in computeRatings:", error);
+        return [];
+    }
 }
-
-// Handle recommendation form submission
-const form = document.getElementById("recommend-form");
-form.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const username = document.getElementById("username").value;
-    updateRecommendations(username);
-});
 
 // Update recommendations
 function updateRecommendations(username) {
-    const recommendations = getRecommendations(username);
-    const ratings = computeRatings();
+    try {
+        console.log("Updating recommendations...");
+        const recommendations = getRecommendations(username);
+        const ratings = computeRatings();
 
-    const recDiv = document.getElementById("recommendations");
-    recDiv.innerHTML = "<h2>Your Recommended Dishes</h2>";
+        const recDiv = document.getElementById("recommendations");
+        if (!recDiv) {
+            console.error("Recommendations div not found.");
+            return;
+        }
+        recDiv.innerHTML = "<h2>Your Recommended Dishes</h2>";
 
-    if (recommendations.length === 0) {
-        recDiv.innerHTML += "<p>No recommendations yet. Rate more dishes!</p>";
-    } else {
-        const ratingsMap = {};
-        ratings.forEach(rating => {
-            const key = `${rating.dish}-${rating.canteen}`;
-            ratingsMap[key] = rating.averageRating;
-        });
-
-        const recommendationsByCanteen = {};
-        recommendations.forEach(dish => {
-            if (!recommendationsByCanteen[dish.canteen]) {
-                recommendationsByCanteen[dish.canteen] = [];
-            }
-            recommendationsByCanteen[dish.canteen].push(dish);
-        });
-
-        Object.keys(recommendationsByCanteen).forEach(canteen => {
-            const canteenDiv = document.createElement("div");
-            canteenDiv.className = "canteen-section";
-            const canteenData = canteenInfo[canteen] || { image: "images/default-canteen.jpg", chineseName: "Unknown" };
-            canteenDiv.innerHTML = `
-                <h3>${canteen} (${canteenData.chineseName})</h3>
-                <img src="${canteenData.image}" alt="${canteen}" class="canteen-image">
-            `;
-            const dishList = document.createElement("ul");
-            recommendationsByCanteen[canteen].forEach(dish => {
-                const li = document.createElement("li");
-                li.className = "dish";
-                const key = `${dish.name}-${dish.canteen}`;
-                const avgRating = ratingsMap[key] ? ratingsMap[key] : "N/A";
-                li.innerHTML = `<strong>${dish.name}</strong> - HK$${dish.price} - Predicted: <span>${dish.score}</span> - Avg Rating: <span>${avgRating}</span>`;
-                dishList.appendChild(li);
+        if (recommendations.length === 0) {
+            recDiv.innerHTML += "<p>No recommendations yet. Rate more dishes!</p>";
+        } else {
+            const ratingsMap = {};
+            ratings.forEach(rating => {
+                const key = `${rating.dish}-${rating.canteen}`;
+                ratingsMap[key] = rating.averageRating;
             });
-            canteenDiv.appendChild(dishList);
-            recDiv.appendChild(canteenDiv);
-        });
-    }
 
-    populateRankingTable(ratings);
+            const recommendationsByCanteen = {};
+            recommendations.forEach(dish => {
+                if (!recommendationsByCanteen[dish.canteen]) {
+                    recommendationsByCanteen[dish.canteen] = [];
+                }
+                recommendationsByCanteen[dish.canteen].push(dish);
+            });
+
+            Object.keys(recommendationsByCanteen).forEach(canteen => {
+                const canteenDiv = document.createElement("div");
+                canteenDiv.className = "canteen-section";
+                const canteenData = canteenInfo[canteen] || { image: "images/default-canteen.jpg", chineseName: "Unknown" };
+                canteenDiv.innerHTML = `
+                    <h3>${canteen} (${canteenData.chineseName})</h3>
+                    <img src="${canteenData.image}" alt="${canteen}" class="canteen-image">
+                `;
+                const dishList = document.createElement("ul");
+                recommendationsByCanteen[canteen].forEach(dish => {
+                    const li = document.createElement("li");
+                    li.className = "dish";
+                    const key = `${dish.name}-${dish.canteen}`;
+                    const avgRating = ratingsMap[key] ? ratingsMap[key] : "N/A";
+                    li.innerHTML = `<strong>${dish.name}</strong> - HK$${dish.price} - Predicted: <span>${dish.score}</span> - Avg Rating: <span>${avgRating}</span>`;
+                    dishList.appendChild(li);
+                });
+                canteenDiv.appendChild(dishList);
+                recDiv.appendChild(canteenDiv);
+            });
+        }
+
+        populateRankingTable(ratings);
+    } catch (error) {
+        console.error("Error in updateRecommendations:", error);
+        const recDiv = document.getElementById("recommendations");
+        if (recDiv) {
+            recDiv.innerHTML = "<h2>Your Recommended Dishes</h2><p>Error generating recommendations. Please try again.</p>";
+        }
+    }
 }
 
 // Populate ranking table
 function populateRankingTable(ratings) {
-    const tableBody = document.getElementById("ranking-table-body");
-    tableBody.innerHTML = "";
+    try {
+        console.log("Populating ranking table...");
+        const tableBody = document.getElementById("ranking-table-body");
+        if (!tableBody) {
+            console.error("Ranking table body not found.");
+            return;
+        }
+        tableBody.innerHTML = "";
 
-    if (ratings.length === 0) {
-        tableBody.innerHTML = "<tr><td colspan='5'>No ratings available yet.</td></tr>";
-        return;
+        if (ratings.length === 0) {
+            tableBody.innerHTML = "<tr><td colspan='5'>No ratings available yet.</td></tr>";
+            return;
+        }
+
+        ratings.sort((a, b) => parseFloat(b.averageRating) - parseFloat(a.averageRating));
+
+        ratings.forEach((dishData, index) => {
+            const rank = index + 1;
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${rank}</td>
+                <td>${dishData.dish}</td>
+                <td>${dishData.canteen}</td>
+                <td>${dishData.price}</td>
+                <td>${dishData.averageRating}</td>
+            `;
+            tableBody.appendChild(row);
+        });
+    } catch (error) {
+        console.error("Error in populateRankingTable:", error);
+        const tableBody = document.getElementById("ranking-table-body");
+        if (tableBody) {
+            tableBody.innerHTML = "<tr><td colspan='5'>Error loading rankings.</td></tr>";
+        }
     }
-
-    ratings.sort((a, b) => parseFloat(b.averageRating) - parseFloat(a.averageRating));
-
-    ratings.forEach((dishData, index) => {
-        const rank = index + 1;
-        const row = document.createElement("tr");
-        row.innerHTML = `
-            <td>${rank}</td>
-            <td>${dishData.dish}</td>
-            <td>${dishData.canteen}</td>
-            <td>${dishData.price}</td>
-            <td>${dishData.averageRating}</td>
-        `;
-        tableBody.appendChild(row);
-    });
 }
+
+// Initialize form event listener
+function initFormListener() {
+    try {
+        console.log("Initializing form listener...");
+        const form = document.getElementById("recommend-form");
+        if (!form) {
+            console.error("Recommend form not found.");
+            return;
+        }
+
+        form.addEventListener("submit", (e) => {
+            e.preventDefault();
+            console.log("Form submitted.");
+            const usernameInput = document.getElementById("username");
+            if (!usernameInput) {
+                console.error("Username input not found.");
+                return;
+            }
+            const username = usernameInput.value.trim();
+            if (!username) {
+                console.log("No username provided.");
+                const recDiv = document.getElementById("recommendations");
+                if (recDiv) {
+                    recDiv.innerHTML = "<h2>Your Recommended Dishes</h2><p>Please enter a username.</p>";
+                }
+                return;
+            }
+            updateRecommendations(username);
+        });
+    } catch (error) {
+        console.error("Error initializing form listener:", error);
+    }
+}
+
+// Run initialization when DOM is fully loaded
+document.addEventListener("DOMContentLoaded", () => {
+    console.log("DOM loaded, initializing...");
+    initFormListener();
+});
